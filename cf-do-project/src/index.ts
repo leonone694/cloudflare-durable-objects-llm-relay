@@ -63,9 +63,17 @@ function stripResponseHeaders(headers: Headers): Record<string, string> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    if (!env.RELAY_SECRET || env.RELAY_SECRET === "YOUR_STRONG_PASSWORD") {
+      return new Response("Relay secret is not configured", { status: 503 });
+    }
+
     const url = new URL(request.url);
     if (url.searchParams.get("__secret") !== env.RELAY_SECRET) {
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    if (!env.UPSTREAM_BASE_URL) {
+      return new Response("Upstream URL is not configured", { status: 503 });
     }
 
     // 非 WebSocket 请求（如 GET 模型列表、普通非流式 POST），原样透传

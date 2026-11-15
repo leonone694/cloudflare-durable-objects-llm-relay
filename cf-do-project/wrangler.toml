@@ -12,5 +12,4 @@ new_sqlite_classes = ["StreamRelayDO"]
 [vars]
 # 你的真实大模型上游地址（也可以接 CF AI Gateway 或 NewAPI）
 UPSTREAM_BASE_URL = ""
-# 自定义一个暗号，防止别人盗刷你的 CF 节点
-RELAY_SECRET = "YOUR_STRONG_PASSWORD"
+# RELAY_SECRET 使用 npx wrangler secret put RELAY_SECRET 设置，不写入本文件。

@@ -2,13 +2,26 @@ const http = require("http");
 const WebSocket = require("ws");
 const crypto = require("crypto");
 
-// 允许环境变量覆盖（方便换实例/本地联调），默认值保持不变。
-const CF_DOMAIN = process.env.CF_DOMAIN || "YOUR_WORKER_DOMAIN"; // 不要带 https:// 或斜杠！
-const RELAY_SECRET = process.env.RELAY_SECRET || "YOUR_STRONG_PASSWORD";
+// npm start 会读取本地 .env，也可以直接通过环境变量配置。
+const CF_DOMAIN = process.env.CF_DOMAIN || ""; // 不要带 https:// 或斜杠！
+const RELAY_SECRET = process.env.RELAY_SECRET || "";
 const LOCAL_PORT = Number(process.env.LOCAL_PORT || 4000);
 // 仅测试用：本地联调时允许走 http 而不是 https。
 const RELAY_ORIGIN = process.env.BRIDGE_TEST_HTTP === "1" ? "http" : "https";
 // ==========================
+
+if (!CF_DOMAIN || CF_DOMAIN === "YOUR_WORKER_DOMAIN" || /[/?#\s]/.test(CF_DOMAIN)) {
+  console.error("请在 .env 或环境变量中设置 CF_DOMAIN（仅域名，不带协议或路径）。");
+  process.exit(1);
+}
+if (!RELAY_SECRET || RELAY_SECRET === "YOUR_STRONG_PASSWORD") {
+  console.error("请设置 RELAY_SECRET，并与 Cloudflare Worker 的密钥保持一致；不能使用示例密码。");
+  process.exit(1);
+}
+if (!Number.isInteger(LOCAL_PORT) || LOCAL_PORT < 1 || LOCAL_PORT > 65535) {
+  console.error("LOCAL_PORT 必须是 1 到 65535 之间的整数。");
+  process.exit(1);
+}
 
 const MAX_CONNECT_ATTEMPTS = 5;           // 同一次请求最多重连几次，避免死循环
 const CONNECT_ATTEMPTS_BEFORE_HEADERS = 30; // 还没拿到响应头时，重连额度放宽（正常要等上游响应）
@@ -302,7 +315,6 @@ const server = http.createServer(async (req, res) => {
 
     ws.on("message", (raw) => {
       if (generation !== connectionGeneration || ws !== currentWs) return;
-      lastActivity = Date.now();
 
       let msg;
       try {
